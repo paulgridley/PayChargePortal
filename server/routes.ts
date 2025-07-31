@@ -94,26 +94,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         success_url: `${domainURL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${domainURL}/`,
-        payment_intent_data: {
-          receipt_email: customer.email,
-        },
-        invoice_creation: {
-          enabled: true,
-          invoice_data: {
-            description: `PCN Payment Plan - ${customer.pcnNumber}`,
-            custom_fields: [
-              {
-                name: 'PCN Number',
-                value: customer.pcnNumber
-              },
-              {
-                name: 'Vehicle Registration',
-                value: customer.vehicleRegistration
-              }
-            ],
-            footer: 'Thank you for your payment. You will receive monthly invoices for the remaining payments.'
-          }
-        },
         metadata: {
           customerId: customer.id,
           pcnNumber: customer.pcnNumber,
