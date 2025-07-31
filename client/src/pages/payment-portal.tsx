@@ -51,19 +51,32 @@ export default function PaymentPortal() {
     setIsLoading(true);
 
     try {
+      console.log('Submitting form data:', formData);
+      
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         pcnNumber: formData.pcnNumber,
         vehicleRegistration: formData.vehicleRegistration,
         email: formData.email
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Checkout response:', data);
       
       if (data.url) {
         // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        console.log('Redirecting to:', data.url);
+        
+        // Use window.location.assign for better compatibility
+        setTimeout(() => {
+          window.location.assign(data.url);
+        }, 100);
       } else {
-        throw new Error('Failed to create checkout session');
+        console.error('No URL in response:', data);
+        throw new Error('Failed to create checkout session - no URL returned');
       }
     } catch (error: any) {
       toast({

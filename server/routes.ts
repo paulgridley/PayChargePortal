@@ -96,11 +96,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      res.json({ 
+      const result = { 
         sessionId: session.id,
         url: session.url,
         customerId: customer.id
-      });
+      };
+      
+      console.log('Sending checkout response:', result);
+      res.json(result);
 
     } catch (error: any) {
       console.error('Error creating checkout session:', error);
