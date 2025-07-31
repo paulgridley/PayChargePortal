@@ -15,8 +15,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Create customer and subscription
-  app.post("/api/create-subscription", async (req, res) => {
+  // Create checkout session for subscription
+  app.post("/api/create-checkout-session", async (req, res) => {
     try {
       const { email, pcnNumber, vehicleRegistration } = insertCustomerSchema.parse(req.body);
       
@@ -65,40 +65,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         product: product.id,
       });
 
-      // Create subscription with 3-month duration
-      const subscription = await stripe.subscriptions.create({
+      const domainURL = process.env.NODE_ENV === 'production' 
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` 
+        : 'http://localhost:5000';
+
+      // Create Checkout Session with 3-month subscription
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
         customer: stripeCustomer.id,
-        items: [{
+        line_items: [{
           price: price.id,
+          quantity: 1,
         }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: {
-          save_default_payment_method: 'on_subscription',
+        subscription_data: {
+          metadata: {
+            pcnNumber: customer.pcnNumber,
+            vehicleRegistration: customer.vehicleRegistration,
+            totalPayments: '3'
+          }
         },
-        expand: ['latest_invoice.payment_intent'],
+        customer_update: {
+          name: 'auto',
+        },
+        success_url: `${domainURL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${domainURL}/`,
         metadata: {
+          customerId: customer.id,
           pcnNumber: customer.pcnNumber,
-          vehicleRegistration: customer.vehicleRegistration,
-          totalPayments: '3'
-        },
-        // Set subscription to cancel after 3 payments
-        cancel_at: Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60), // 90 days from now
+          vehicleRegistration: customer.vehicleRegistration
+        }
       });
 
-      // Update customer with subscription ID
-      await storage.updateCustomerStripeInfo(customer.id, stripeCustomer.id, subscription.id);
-
-      const latestInvoice = subscription.latest_invoice as any;
-      const paymentIntent = latestInvoice?.payment_intent;
-      
       res.json({ 
-        clientSecret: paymentIntent?.client_secret,
-        subscriptionId: subscription.id,
+        sessionId: session.id,
+        url: session.url,
         customerId: customer.id
       });
 
     } catch (error: any) {
-      console.error('Error creating subscription:', error);
+      console.error('Error creating checkout session:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get checkout session details
+  app.get("/api/checkout-session", async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      if (!sessionId || typeof sessionId !== 'string') {
+        return res.status(400).json({ error: 'Session ID is required' });
+      }
+      
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      res.json(session);
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   });

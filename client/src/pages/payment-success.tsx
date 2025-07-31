@@ -1,9 +1,47 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Download, Mail, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+
+interface CheckoutSession {
+  id: string;
+  customer: string;
+  subscription: string;
+  amount_total: number;
+  customer_details: {
+    email: string;
+    name?: string;
+  };
+  metadata: {
+    pcnNumber: string;
+    vehicleRegistration: string;
+  };
+}
 
 export default function PaymentSuccess() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session_id');
+
+  const { data: session, isLoading } = useQuery({
+    queryKey: ['/api/checkout-session', sessionId],
+    queryFn: async () => {
+      if (!sessionId) return null;
+      const response = await apiRequest('GET', `/api/checkout-session?sessionId=${sessionId}`);
+      return response.json() as Promise<CheckoutSession>;
+    },
+    enabled: !!sessionId,
+  });
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,6 +58,30 @@ export default function PaymentSuccess() {
             <p className="text-lg text-neutral-600 mb-8">
               Your recurring payment plan has been successfully activated. You will be charged £30.00 monthly for the next 3 months.
             </p>
+
+            {session && (
+              <div className="bg-neutral-50 rounded-lg p-6 mb-8 text-left">
+                <h3 className="text-lg font-semibold text-neutral-800 mb-4">Payment Details</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">PCN Number:</span>
+                    <span className="font-medium">{session.metadata.pcnNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Vehicle Registration:</span>
+                    <span className="font-medium">{session.metadata.vehicleRegistration}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Email:</span>
+                    <span className="font-medium">{session.customer_details.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Monthly Payment:</span>
+                    <span className="font-medium">£30.00</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-neutral-50 rounded-lg p-6 mb-8">
               <h3 className="text-lg font-semibold text-neutral-800 mb-4">What happens next?</h3>
