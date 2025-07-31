@@ -12,9 +12,9 @@ import { Shield, Lock, CreditCard, CheckCircle, ArrowRight, Phone } from "lucide
 
 export default function PaymentPortal() {
   const [formData, setFormData] = useState({
-    pcnNumber: '',
-    vehicleRegistration: '',
-    email: '',
+    pcnNumber: 'PCN123456789',
+    vehicleRegistration: 'AB12CDE',
+    email: 'pcn@payment.com',
     penaltyAmount: 90
   });
   const [isLoading, setIsLoading] = useState(false);
