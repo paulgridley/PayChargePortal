@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create checkout session for subscription
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      const { email, pcnNumber, vehicleRegistration } = insertCustomerSchema.parse(req.body);
+      const { email, pcnNumber, vehicleRegistration, penaltyAmount } = req.body;
       
       // Check if customer already exists
       let customer = await storage.getCustomerByEmail(email);
@@ -49,14 +49,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customer = await storage.updateCustomerStripeInfo(customer.id, stripeCustomer.id);
       }
 
-      // Create a product and price for the PCN payment (£30/month for 3 months)
+      // Create a product and price for the PCN payment
       const product = await stripe.products.create({
         name: `PCN Payment Plan - ${pcnNumber}`,
-        description: `Recurring payment plan for PCN ${pcnNumber}, Vehicle ${vehicleRegistration}`,
+        description: `Recurring payment plan for PCN ${pcnNumber}, Vehicle ${vehicleRegistration}, Total: £${penaltyAmount}`,
       });
 
+      // Calculate monthly payment amount (penalty amount divided by 3, converted to pence)
+      const monthlyAmountInPence = Math.round((penaltyAmount / 3) * 100);
+      
       const price = await stripe.prices.create({
-        unit_amount: 3000, // £30.00 in pence
+        unit_amount: monthlyAmountInPence,
         currency: 'gbp',
         recurring: {
           interval: 'month',
@@ -81,7 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           metadata: {
             pcnNumber: customer.pcnNumber,
             vehicleRegistration: customer.vehicleRegistration,
-            totalPayments: '3'
+            totalPayments: '3',
+            penaltyAmount: penaltyAmount.toString(),
+            monthlyAmount: (penaltyAmount / 3).toFixed(2)
           }
         },
         customer_update: {
@@ -92,7 +97,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           customerId: customer.id,
           pcnNumber: customer.pcnNumber,
-          vehicleRegistration: customer.vehicleRegistration
+          vehicleRegistration: customer.vehicleRegistration,
+          penaltyAmount: penaltyAmount.toString(),
+          monthlyAmount: (penaltyAmount / 3).toFixed(2)
         }
       });
 

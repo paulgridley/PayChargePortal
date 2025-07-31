@@ -14,7 +14,8 @@ export default function PaymentPortal() {
   const [formData, setFormData] = useState({
     pcnNumber: '',
     vehicleRegistration: '',
-    email: ''
+    email: '',
+    penaltyAmount: 90
   });
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -23,17 +24,21 @@ export default function PaymentPortal() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'vehicleRegistration' ? value.toUpperCase().replace(/[^A-Z0-9]/g, '') : value
+      [field]: field === 'vehicleRegistration' 
+        ? value.toUpperCase().replace(/[^A-Z0-9]/g, '') 
+        : field === 'penaltyAmount' 
+        ? parseFloat(value) || 0
+        : value
     }));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.pcnNumber || !formData.vehicleRegistration || !formData.email) {
+    if (!formData.pcnNumber || !formData.vehicleRegistration || !formData.email || !formData.penaltyAmount || formData.penaltyAmount <= 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields with valid values",
         variant: "destructive",
       });
       return;
@@ -56,7 +61,8 @@ export default function PaymentPortal() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         pcnNumber: formData.pcnNumber,
         vehicleRegistration: formData.vehicleRegistration,
-        email: formData.email
+        email: formData.email,
+        penaltyAmount: formData.penaltyAmount
       });
 
       if (!response.ok) {
@@ -204,6 +210,29 @@ export default function PaymentPortal() {
                       <p className="mt-1 text-xs text-neutral-500">Payment confirmations and receipts will be sent to this email</p>
                     </div>
 
+                    <div>
+                      <Label htmlFor="penalty-amount" className="text-sm font-medium text-neutral-700 mb-2 block">
+                        Penalty Amount (£) *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="penalty-amount"
+                          type="number"
+                          placeholder="90"
+                          value={formData.penaltyAmount}
+                          onChange={(e) => handleInputChange('penaltyAmount', e.target.value)}
+                          className="pl-8"
+                          min="1"
+                          step="0.01"
+                          required
+                        />
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="text-neutral-500 text-sm">£</span>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-xs text-neutral-500">Total penalty amount to be split across 3 monthly payments</p>
+                    </div>
+
                     <div className="flex items-start space-x-3 mb-6">
                       <Checkbox 
                         id="terms" 
@@ -211,7 +240,7 @@ export default function PaymentPortal() {
                         onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                       />
                       <Label htmlFor="terms" className="text-sm text-neutral-600 leading-5">
-                        I agree to the Terms and Conditions and authorize recurring payments of £30.00 per month for 3 months (total £90.00) starting today.
+                        I agree to the Terms and Conditions and authorize recurring payments of £{(formData.penaltyAmount / 3).toFixed(2)} per month for 3 months (total £{formData.penaltyAmount.toFixed(2)}) starting today.
                       </Label>
                     </div>
 
@@ -247,7 +276,7 @@ export default function PaymentPortal() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                     <span className="text-neutral-600">Monthly Payment</span>
-                    <span className="font-semibold text-neutral-800">£30.00</span>
+                    <span className="font-semibold text-neutral-800">£{(formData.penaltyAmount / 3).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                     <span className="text-neutral-600">Duration</span>
@@ -255,11 +284,11 @@ export default function PaymentPortal() {
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                     <span className="text-neutral-600">Total Amount</span>
-                    <span className="font-semibold text-neutral-800">£90.00</span>
+                    <span className="font-semibold text-neutral-800">£{formData.penaltyAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-lg font-semibold text-neutral-800">
                     <span>First Payment Today</span>
-                    <span className="text-blue-600">£30.00</span>
+                    <span className="text-blue-600">£{(formData.penaltyAmount / 3).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -268,88 +297,24 @@ export default function PaymentPortal() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Payment 1 (Today)</span>
-                      <span className="font-medium">£30.00</span>
+                      <span className="font-medium">£{(formData.penaltyAmount / 3).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Payment 2 ({payment2})</span>
-                      <span className="font-medium">£30.00</span>
+                      <span className="font-medium">£{(formData.penaltyAmount / 3).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Payment 3 ({payment3})</span>
-                      <span className="font-medium">£30.00</span>
+                      <span className="font-medium">£{(formData.penaltyAmount / 3).toFixed(2)}</span>
                     </div>
                   </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium text-neutral-800">Security & Trust</h4>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">STRIPE</span>
-                    </div>
-                    <div className="text-xs text-neutral-600">
-                      <div className="font-medium">PCI DSS Compliant</div>
-                      <div>Bank-level security</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-8 bg-green-600 rounded flex items-center justify-center">
-                      <Lock className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="text-xs text-neutral-600">
-                      <div className="font-medium">SSL Encrypted</div>
-                      <div>256-bit encryption</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-xs text-neutral-600 mb-2">Need help?</p>
-                  <a href="#" className="text-sm text-blue-600 hover:underline flex items-center">
-                    <Phone className="w-4 h-4 mr-1" />
-                    Contact Support
-                  </a>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Trust Indicators */}
-        <Card className="mt-12 p-6">
-          <CardContent className="p-0">
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-neutral-800 mb-2">Your Payment is Secure</h3>
-              <p className="text-neutral-600">We use industry-standard security measures to protect your information</p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Shield className="w-6 h-6 text-green-600" />
-                </div>
-                <h4 className="font-medium text-neutral-800 mb-1">Bank-Level Security</h4>
-                <p className="text-sm text-neutral-600">256-bit SSL encryption protects your data</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle className="w-6 h-6 text-blue-600" />
-                </div>
-                <h4 className="font-medium text-neutral-800 mb-1">PCI Compliant</h4>
-                <p className="text-sm text-neutral-600">Meets all payment card industry standards</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CreditCard className="w-6 h-6 text-purple-600" />
-                </div>
-                <h4 className="font-medium text-neutral-800 mb-1">Easy Management</h4>
-                <p className="text-sm text-neutral-600">Update or cancel anytime from your dashboard</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </main>
 
       {/* Footer */}
