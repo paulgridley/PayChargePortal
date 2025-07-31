@@ -78,32 +78,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: 1,
         }],
         subscription_data: {
-          description: `PCN Payment Plan - ${customer.pcnNumber}`,
           metadata: {
             pcnNumber: customer.pcnNumber,
             vehicleRegistration: customer.vehicleRegistration,
-            totalPayments: '3',
-            paymentReference: customer.pcnNumber
+            totalPayments: '3'
           }
         },
         customer_update: {
           name: 'auto',
-        },
-        invoice_creation: {
-          enabled: true,
-          invoice_data: {
-            description: `Monthly payment for PCN ${customer.pcnNumber}`,
-            custom_fields: [
-              {
-                name: 'PCN Reference',
-                value: customer.pcnNumber
-              },
-              {
-                name: 'Vehicle Registration',
-                value: customer.vehicleRegistration
-              }
-            ]
-          }
         },
         success_url: `${domainURL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${domainURL}/`,
@@ -114,11 +96,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      res.json({ 
+      const result = { 
         sessionId: session.id,
         url: session.url,
         customerId: customer.id
-      });
+      };
+      
+      console.log('Sending checkout response:', result);
+      res.json(result);
 
     } catch (error: any) {
       console.error('Error creating checkout session:', error);
