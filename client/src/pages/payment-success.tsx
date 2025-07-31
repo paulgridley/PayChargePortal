@@ -1,0 +1,68 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Download, Mail, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
+
+export default function PaymentSuccess() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Card className="p-8 text-center">
+          <CardContent className="p-0">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-green-600" />
+            </div>
+            
+            <h1 className="text-3xl font-bold text-neutral-800 mb-4">
+              Payment Setup Complete!
+            </h1>
+            
+            <p className="text-lg text-neutral-600 mb-8">
+              Your recurring payment plan has been successfully activated. You will be charged £30.00 monthly for the next 3 months.
+            </p>
+
+            <div className="bg-neutral-50 rounded-lg p-6 mb-8">
+              <h3 className="text-lg font-semibold text-neutral-800 mb-4">What happens next?</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-left">
+                <div className="flex items-start space-x-3">
+                  <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-neutral-800">Email Confirmation</h4>
+                    <p className="text-sm text-neutral-600">You'll receive a confirmation email with your payment details</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-neutral-800">Automatic Payments</h4>
+                    <p className="text-sm text-neutral-600">Monthly payments will be processed automatically</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Download className="w-4 h-4" />
+                <span>Download Receipt</span>
+              </Button>
+              
+              <Link href="/">
+                <Button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Return to Portal</span>
+                </Button>
+              </Link>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-sm text-neutral-600">
+                Need help? <a href="#" className="text-blue-600 hover:underline">Contact our support team</a>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
