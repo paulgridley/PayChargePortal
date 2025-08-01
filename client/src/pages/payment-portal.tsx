@@ -135,12 +135,12 @@ export default function PaymentPortal() {
                 <h1 className="text-xl font-semibold text-neutral-800">PCN Payment Portal</h1>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+{/*             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1 text-xs text-neutral-500">
                 <Lock className="w-4 h-4" />
-                <span>SSL Secured</span>
+                <span>SSL</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
@@ -249,7 +249,7 @@ export default function PaymentPortal() {
                         onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                       />
                       <Label htmlFor="terms" className="text-sm text-neutral-600 leading-5">
-                        I agree to the Terms and Conditions and authorize recurring payments of £{(formData.penaltyAmount / 3).toFixed(2)} per month for 3 months (total £{formData.penaltyAmount.toFixed(2)}) starting today.
+                        I agree to the Terms and Conditions and authorise recurring payments of £{(formData.penaltyAmount / 3).toFixed(2)} per month for 3 months (total £{formData.penaltyAmount.toFixed(2)}) starting today.
                       </Label>
                     </div>
 
