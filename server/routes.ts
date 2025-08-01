@@ -68,9 +68,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         product: product.id,
       });
 
-      const domainURL = process.env.NODE_ENV === 'production' 
-        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` 
-        : 'http://localhost:5000';
+      // Get domain URL based on environment
+      let domainURL;
+      
+      // Check for custom domain override first (highest priority)
+      if (process.env.CUSTOM_DOMAIN_URL) {
+        domainURL = process.env.CUSTOM_DOMAIN_URL;
+      } 
+      // Check for Azure hostname (Azure App Service production)
+      else if (process.env.WEBSITE_HOSTNAME) {
+        domainURL = `https://${process.env.WEBSITE_HOSTNAME}`;
+      }
+      // Check for Replit production
+      else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        domainURL = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      }
+      // Use localhost for development (lowest priority)
+      else {
+        domainURL = process.env.WEBSITE_URL || 'http://localhost:5000';
+      }
+      
+      console.log('Domain URL for redirects:', domainURL);
 
       // Create Checkout Session with 3-month subscription
       const session = await stripe.checkout.sessions.create({
