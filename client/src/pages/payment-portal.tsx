@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Shield, Lock, CreditCard, CheckCircle, ArrowRight, Phone } from "lucide-react";
+import { Car, Lock, CreditCard, CheckCircle, ArrowRight, Phone } from "lucide-react";
 
 
 
@@ -97,8 +97,21 @@ export default function PaymentPortal() {
 
   const getNextPaymentDates = () => {
     const today = new Date();
-    const payment2 = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-    const payment3 = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+    const currentDay = today.getDate();
+    
+    // For month 2: same day next month, or next day if same day doesn't exist
+    const payment2 = new Date(today.getFullYear(), today.getMonth() + 1, currentDay);
+    if (payment2.getDate() !== currentDay) {
+      // If the day doesn't exist in next month (e.g., Feb 31st), use next day
+      payment2.setDate(currentDay + 1);
+    }
+    
+    // For month 3: same day in month after that, or next day if same day doesn't exist  
+    const payment3 = new Date(today.getFullYear(), today.getMonth() + 2, currentDay);
+    if (payment3.getDate() !== currentDay) {
+      // If the day doesn't exist in that month, use next day
+      payment3.setDate(currentDay + 1);
+    }
     
     return {
       payment2: payment2.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -116,20 +129,16 @@ export default function PaymentPortal() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
+                <Car className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-neutral-800">PCN Payment Portal</h1>
-                <p className="text-sm text-neutral-500">Secure recurring payment system</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1 text-xs text-neutral-500">
                 <Lock className="w-4 h-4" />
                 <span>SSL Secured</span>
-              </div>
-              <div className="text-xs text-neutral-500 border-l border-gray-300 pl-4">
-                Powered by Stripe
               </div>
             </div>
           </div>
@@ -257,7 +266,7 @@ export default function PaymentPortal() {
                       ) : (
                         <div className="flex items-center justify-center space-x-2">
                           <Lock className="w-5 h-5" />
-                          <span>Continue to Secure Checkout</span>
+                          <span>Pay</span>
                           <ArrowRight className="w-5 h-5" />
                         </div>
                       )}
