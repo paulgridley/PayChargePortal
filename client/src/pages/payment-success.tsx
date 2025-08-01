@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Download, Mail, ArrowLeft } from "lucide-react";
@@ -56,7 +55,7 @@ export default function PaymentSuccess() {
             </h1>
             
             <p className="text-lg text-neutral-600 mb-8">
-              Your recurring payment plan has been successfully activated. You will be charged £30.00 monthly for the next 3 months.
+              Your recurring payment plan has been successfully setup. You will be charged £30 a month for the next 3 months.
             </p>
 
             {session && (
