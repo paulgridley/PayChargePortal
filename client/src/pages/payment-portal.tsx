@@ -135,10 +135,10 @@ export default function PaymentPortal() {
                 <h1 className="text-xl font-semibold text-neutral-800">PCN Payment Portal</h1>
               </div>
             </div>
-{/*             <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1 text-xs text-neutral-500">
                 <Lock className="w-4 h-4" />
-                <span>SSL</span>
+                <span>SSL Secured</span>
               </div>
             </div> */}
           </div>
