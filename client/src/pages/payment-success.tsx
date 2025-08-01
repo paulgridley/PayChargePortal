@@ -116,11 +116,6 @@ export default function PaymentSuccess() {
               </Link>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-sm text-neutral-600">
-                Need help? <a href="#" className="text-blue-600 hover:underline">Contact our support team</a>
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
