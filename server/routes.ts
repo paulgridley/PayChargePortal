@@ -6,7 +6,7 @@ import { insertCustomerSchema } from "@shared/schema";
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+  throw new Error("Missing required Stripe secret: STRIPE_SECRET_KEY");
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -14,101 +14,95 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Create checkout session for subscription
+  // Create checkout session for subscription schedule (3-month plan)
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
       const { email, pcnNumber, vehicleRegistration, penaltyAmount } = req.body;
-      
-      // Check if customer already exists
+
+      // Validate and fetch customer
       let customer = await storage.getCustomerByEmail(email);
-      
       if (!customer) {
-        // Create new customer record
         customer = await storage.createCustomer({
           email,
           pcnNumber,
-          vehicleRegistration
+          vehicleRegistration,
         });
       }
 
-      // Create Stripe customer if not exists
+      // Ensure Stripe customer exists
       let stripeCustomer;
       if (customer.stripeCustomerId) {
-        stripeCustomer = await stripe.customers.retrieve(customer.stripeCustomerId);
+        stripeCustomer = await stripe.customers.retrieve(
+          customer.stripeCustomerId,
+        );
       } else {
         stripeCustomer = await stripe.customers.create({
           email: customer.email,
           metadata: {
             pcnNumber: customer.pcnNumber,
-            vehicleRegistration: customer.vehicleRegistration
-          }
+            vehicleRegistration: customer.vehicleRegistration,
+          },
         });
-        
-        // Update customer with Stripe ID
-        customer = await storage.updateCustomerStripeInfo(customer.id, stripeCustomer.id);
+        customer = await storage.updateCustomerStripeInfo(
+          customer.id,
+          stripeCustomer.id,
+        );
       }
 
-      // Create a product and price for the PCN payment
+      // Create product & price
       const product = await stripe.products.create({
         name: `PCN Payment Plan - ${pcnNumber}`,
         description: `Recurring payment plan for PCN ${pcnNumber}, Vehicle ${vehicleRegistration}, Total: £${penaltyAmount}`,
       });
 
-      // Calculate monthly payment amount (penalty amount divided by 3, converted to pence)
       const monthlyAmountInPence = Math.round((penaltyAmount / 3) * 100);
-      
       const price = await stripe.prices.create({
         unit_amount: monthlyAmountInPence,
-        currency: 'gbp',
-        recurring: {
-          interval: 'month',
-          interval_count: 1,
-        },
+        currency: "gbp",
+        recurring: { interval: "month" },
         product: product.id,
       });
 
-      // Get domain URL based on environment
-      let domainURL;
-      
-      // Check for custom domain override first (highest priority)
-      if (process.env.CUSTOM_DOMAIN_URL) {
-        domainURL = process.env.CUSTOM_DOMAIN_URL;
-      } 
-      // Check for Azure hostname (Azure App Service production)
-      else if (process.env.WEBSITE_HOSTNAME) {
-        domainURL = `https://${process.env.WEBSITE_HOSTNAME}`;
-      }
-      // Check for Replit production
-      else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-        domainURL = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-      }
-      // Use localhost for development (lowest priority)
-      else {
-        domainURL = process.env.WEBSITE_URL || 'http://localhost:5000';
-      }
-      
-      console.log('Domain URL for redirects:', domainURL);
+      // Create 3-iteration subscription schedule
+      const schedule = await stripe.subscriptionSchedules.create({
+        customer: stripeCustomer.id,
+        start_date: "now",
+        end_behavior: "cancel",
+        metadata: {
+          pcnNumber: customer.pcnNumber,
+          vehicleRegistration: customer.vehicleRegistration,
+          totalPayments: "3",
+          penaltyAmount: penaltyAmount.toString(),
+          monthlyAmount: (penaltyAmount / 3).toFixed(2),
+        },
+        phases: [
+          {
+            items: [{ price: price.id }],
+            iterations: 3,
+          },
+        ],
+      });
 
-      // Create Checkout Session with 3-month subscription
+      // Resolve domain URL
+      let domainURL =
+        process.env.CUSTOM_DOMAIN_URL ||
+        (process.env.WEBSITE_HOSTNAME &&
+          `https://${process.env.WEBSITE_HOSTNAME}`) ||
+        (process.env.REPL_SLUG &&
+          process.env.REPL_OWNER &&
+          `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`) ||
+        process.env.WEBSITE_URL ||
+        "http://localhost:5000";
+
+      console.log("Domain URL for redirects:", domainURL);
+
+      // Create checkout session from the active subscription on schedule
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: stripeCustomer.id,
-        line_items: [{
-          price: price.id,
-          quantity: 1,
-        }],
-        subscription_data: {
-          metadata: {
-            pcnNumber: customer.pcnNumber,
-            vehicleRegistration: customer.vehicleRegistration,
-            totalPayments: '3',
-            penaltyAmount: penaltyAmount.toString(),
-            monthlyAmount: (penaltyAmount / 3).toFixed(2)
-          }
-        },
+        subscription: schedule.subscription,
         customer_update: {
-          name: 'auto',
+          name: "auto",
         },
         success_url: `${domainURL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${domainURL}/`,
@@ -117,41 +111,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pcnNumber: customer.pcnNumber,
           vehicleRegistration: customer.vehicleRegistration,
           penaltyAmount: penaltyAmount.toString(),
-          monthlyAmount: (penaltyAmount / 3).toFixed(2)
-        }
+          monthlyAmount: (penaltyAmount / 3).toFixed(2),
+        },
       });
 
-      const result = { 
+      const result = {
         sessionId: session.id,
         url: session.url,
-        customerId: customer.id
+        customerId: customer.id,
       };
-      
-      console.log('Sending checkout response:', result);
+
+      console.log("Sending checkout response:", result);
       res.json(result);
-
     } catch (error: any) {
-      console.error('Error creating checkout session:', error);
+      console.error("Error creating checkout session:", error);
       res.status(400).json({ error: error.message });
     }
   });
 
-  // Get checkout session details
-  app.get("/api/checkout-session", async (req, res) => {
-    try {
-      const { sessionId } = req.query;
-      if (!sessionId || typeof sessionId !== 'string') {
-        return res.status(400).json({ error: 'Session ID is required' });
-      }
-      
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      res.json(session);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Get subscription status
+  // Optional: Retain this for status-checking
   app.get("/api/subscription/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -161,6 +139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // OPTIONAL: Remove this if no longer used
+  // app.get("/api/checkout-session", ...) → no longer required since cancel_at logic is handled by the schedule
 
   const httpServer = createServer(app);
   return httpServer;
